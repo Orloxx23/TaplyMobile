@@ -8,7 +8,13 @@ import {
 } from "@ui-kitten/components";
 import React, { useState, useEffect, useContext } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { BackHandler, Image, ImageBackground, StyleSheet } from "react-native";
+import {
+  BackHandler,
+  Image,
+  ImageBackground,
+  StyleSheet,
+  View,
+} from "react-native";
 import AgentButton from "../../components/AgentButton";
 import { MainContext } from "../../context/MainContext";
 import TeammateAgent from "../../components/TeammateAgent";
@@ -140,6 +146,12 @@ import TeammateAgent from "../../components/TeammateAgent";
   queue: "spikerush"
 }*/
 
+const LoadingIndicator = (props) => (
+  <View style={[props.style, styles.indicator]}>
+    <Spinner size="small" />
+  </View>
+);
+
 export default function PreGameScreen() {
   const { socket, matchData, me, agents, maps } = useContext(MainContext);
   const [agentSelected, setAgentSelected] = useState(null);
@@ -148,6 +160,8 @@ export default function PreGameScreen() {
   const [gamemode, setGamemode] = useState(null);
   const [lockedAgents, setLockedAgents] = useState([]);
   const [disabled, setDisabled] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [mySelection, setMySelection] = useState(null);
 
   useEffect(() => {
     BackHandler.addEventListener("hardwareBackPress", function () {
@@ -185,6 +199,15 @@ export default function PreGameScreen() {
     const tempLockedAgents = tempLockedPlayers?.map(
       (player) => player.CharacterID
     );
+
+    const tempMySelection = matchData.team?.find(
+      (player) => player.Subject === me
+    );
+
+    if (tempMySelection?.CharacterID) {
+      setAgentSelected(tempMySelection.CharacterID);
+    }
+
     setLockedAgents(tempLockedAgents);
   }, [matchData]);
 
@@ -204,6 +227,7 @@ export default function PreGameScreen() {
   };
 
   const dodge = () => {
+    setLoading(true);
     socket.emit("dodge");
   };
 
@@ -225,9 +249,21 @@ export default function PreGameScreen() {
           >
             Do you want to exit this game?
           </Text>
-          <Button style={{ marginBottom: 10 }} onPress={dodge}>
-            DODGE
-          </Button>
+          {loading ? (
+            <Button
+              disabled={loading}
+              style={{ marginBottom: 10 }}
+              accessoryLeft={LoadingIndicator}
+            ></Button>
+          ) : (
+            <Button
+              disabled={loading}
+              style={{ marginBottom: 10 }}
+              onPress={dodge}
+            >
+              Yes
+            </Button>
+          )}
           <Button onPress={() => setVisible(false)} appearance="ghost">
             Cancel
           </Button>

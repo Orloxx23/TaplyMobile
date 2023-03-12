@@ -1,6 +1,16 @@
-import React, { createContext, useState, useEffect, useContext } from "react";
+import React, { createContext, useState, useEffect, useContext, useRef } from "react";
 import io from "socket.io-client";
 import { useNavigation } from "@react-navigation/native";
+import * as Device from "expo-device";
+import * as Notifications from "expo-notifications";
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
 
 const socket = io("http://192.168.20.21:3000/");
 
@@ -25,6 +35,81 @@ function MainProvider({ children }) {
   const [matchData, setMatchData] = useState(null);
   const [matchId, setMatchId] = useState(null);
 
+  /* PUSH NOTIFICATIONS */
+  const [expoPushToken, setExpoPushToken] = useState("");
+  const [notification, setNotification] = useState(false);
+  const notificationListener = useRef();
+  const responseListener = useRef();
+
+  useEffect(() => {
+    registerForPushNotificationsAsync().then((token) => {
+      setExpoPushToken(token);
+    });
+
+    notificationListener.current =
+      Notifications.addNotificationReceivedListener((notification) => {
+        setNotification(notification);
+      });
+
+    responseListener.current =
+      Notifications.addNotificationResponseReceivedListener((response) => {
+        // console.log(response);
+      });
+
+    return () => {
+      Notifications.removeNotificationSubscription(
+        notificationListener.current
+      );
+      Notifications.removeNotificationSubscription(responseListener.current);
+    };
+  }, []);
+
+  async function schedulePushNotification(title, body, data) {
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: title,
+        body: body,
+        data: data,
+      },
+      trigger: { seconds: 2 },
+    });
+  }
+
+  async function registerForPushNotificationsAsync() {
+    let token;
+
+    if (Platform.OS === "android") {
+      await Notifications.setNotificationChannelAsync("default", {
+        name: "default",
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: "#FF231F7C",
+      });
+    }
+
+    if (Device.isDevice) {
+      const { status: existingStatus } =
+        await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+      if (existingStatus !== "granted") {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+      if (finalStatus !== "granted") {
+        alert("Failed to get push token for push notification!");
+        return;
+      }
+      token = (await Notifications.getExpoPushTokenAsync()).data;
+      // console.log(token);
+    } else {
+      alert("Must use physical device for Push Notifications");
+    }
+
+    return token;
+  }
+
+  /* ------ */
+
   useEffect(() => {
     (async () => {
       let url = "https://valorant-api.com/v1/agents";
@@ -38,7 +123,7 @@ function MainProvider({ children }) {
           const agentsSort = tempAgents.sort((a, b) => {
             return a.displayName.localeCompare(b.displayName);
           });
-          const agentFilter = agentsSort.filter(
+          const agentFilter = agentsSort?.filter(
             (agent) => agent.isPlayableCharacter === true
           );
           setAgents(agentFilter);
@@ -109,17 +194,17 @@ function MainProvider({ children }) {
   useEffect(() => {
     if (!party) return;
     if (party.length === 0 || puuid.length === 0) return;
-    const partyMembers = party.Members.map((member) => member.Subject).filter(
-      (member) => member !== puuid
-    );
-    const me = party.Members.find((member) => member.Subject === puuid);
+    const partyMembers = party.Members?.map(
+      (member) => member?.Subject
+    )?.filter((member) => member !== puuid);
+    const me = party.Members?.find((member) => member?.Subject === puuid);
     if (party.State === "MATCHMAKING") {
       setSearchingMatch(true);
     } else {
       setSearchingMatch(false);
     }
     setPartyMembers(partyMembers);
-    setMe(me.Subject);
+    setMe(me?.Subject);
   }, [party]);
 
   useEffect(() => {
@@ -153,6 +238,7 @@ function MainProvider({ children }) {
       }
 
       if (navigation.getCurrentRoute().name === "PreGame") return;
+      schedulePushNotification("Match found", data.pregame.queue);
       navigation.navigate("PreGame");
     });
   }, []);
@@ -160,13 +246,13 @@ function MainProvider({ children }) {
   useEffect(() => {
     socket.on("inGame", (data) => {
       // console.log("inGame", data);
-      if (data || data !== null) {
+      if (data || data !== null || data !== "null") {
         // navigation.navigate("InGame");
         setMatchId(data);
-        console.log("La partida ya ha comenzado");
+        // console.log("La partida ya ha comenzado");
         navigation.navigate("Home");
       } else {
-        console.log("La partida no ha comenzado");
+        // console.log("La partida no ha comenzado");
         navigation.navigate("Home");
       }
     });
@@ -204,7 +290,7 @@ function MainProvider({ children }) {
         agents,
         playerCards,
         contracts,
-        playerContracts
+        playerContracts,
       }}
     >
       {children}

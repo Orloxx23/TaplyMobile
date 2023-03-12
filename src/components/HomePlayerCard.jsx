@@ -32,10 +32,10 @@ export default function HomePlayerCard({ puuid }) {
 
   useEffect(() => {
     if (!puuid) return;
-    const me = party?.Members.find((member) => member.Subject === puuid);
+    const me = party?.Members?.find((member) => member.Subject === puuid);
     const meCard = me?.PlayerIdentity.PlayerCardID;
 
-    const img = playerCards.find((card) => card.uuid === meCard)?.smallArt;
+    const img = playerCards?.find((card) => card.uuid === meCard)?.smallArt;
     setPlayerImg(img);
   }, [party, puuid, loading]);
 
