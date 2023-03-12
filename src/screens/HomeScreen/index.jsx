@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { StyleSheet, ScrollView } from "react-native";
-import io from "socket.io-client";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Layout,
@@ -11,59 +10,45 @@ import {
   Toggle,
 } from "@ui-kitten/components";
 import { HomePlayerCard } from "../../components";
+import { MainContext } from "../../context/MainContext";
+export default function HomeScreen() {
+  const {
+    socket,
+    puuid,
+    gameModes,
+    me,
+    party,
+    partyMembers,
+    conected,
+    searchingMatch,
+    setSearchingMatch,
+    updateData,
+    matchId,
+  } = useContext(MainContext);
 
-const socket = io("http://192.168.20.21:3000/");
-
-export default function HomeScreen({ navigation }) {
-  const [status, setStatus] = useState("");
-  const [messages, setMessages] = useState([]);
-  const [puuid, setPuuid] = useState("");
-  const [gameModes, setGameModes] = useState([]);
   const [selectedIndex, setSelectedIndex] = React.useState(new IndexPath(0));
-  const [party, setParty] = useState([]);
-  const [partyMembers, setPartyMembers] = useState([]);
-  const [me, setMe] = useState(null);
   const [checked, setChecked] = React.useState(false);
-  const [conected, setConected] = useState(false);
-
-  const [searchingMatch, setSearchingMatch] = useState(false);
+  const [disabled, setDisabled] = React.useState(false);
 
   useEffect(() => {
-    socket.on("console", (data) => {
-      setStatus(data);
-    });
-  }, []);
+    if (!party) {
+      updateData();
+    }
+  }, [party]);
 
   useEffect(() => {
-    socket.on("puuid", (data) => {
-      setPuuid(data);
-    });
-  }, []);
-
-  useEffect(() => {
-    socket.on("gamemodes", (data) => {
-      setGameModes(data);
-    });
-  }, []);
-
-  useEffect(() => {
-    socket.on("party", (data) => {
-      setParty(data);
-    });
-  }, []);
-
-  useEffect(() => {
+    if (!party) return;
     if (party.length === 0 || puuid.length === 0) return;
-    const partyMembers = party.Members.map((member) => member.Subject).filter(
-      (member) => member !== puuid
-    );
-    const me = party.Members.find((member) => member.Subject === puuid);
 
-    const queue = party.MatchmakingData.QueueID;
-    for (let i = 0; i < gameModes.length; i++) {
-      if (gameModes[i].includes(queue)) {
-        setSelectedIndex(new IndexPath(i));
+    try {
+      const queue = party.MatchmakingData.QueueID;
+      for (let i = 0; i < gameModes.length; i++) {
+        if (gameModes[i].includes(queue)) {
+          setSelectedIndex(new IndexPath(i));
+        }
       }
+    } catch (error) {
+      console.log(error);
     }
 
     if (party.Accessibility === "open" || party.Accessibility === "OPEN") {
@@ -71,38 +56,16 @@ export default function HomeScreen({ navigation }) {
     } else {
       setChecked(false);
     }
-
-    setPartyMembers(partyMembers);
-    setMe(me.Subject);
   }, [party]);
 
   useEffect(() => {
-    socket.on("connected", () => {
-      setConected(true);
-    });
-  }, []);
-
-  useEffect(() => {
-    socket.on("disconnected", () => {
-      setConected(false);
-    });
-  }, []);
-
-  useEffect(() => {
-    socket.on("updateData", () => {
-      updateData();
-    });
-  }, []);
-
-  useEffect(() => {
-    socket.on("preGameEvent", (data) => {
-      navigation.navigate("PreGame", { data });
-    });
-  }, []);
-
-  const updateData = () => {
-    socket.emit("updateData");
-  };
+    if (matchId) {
+      setDisabled(true);
+      setSearchingMatch(false);
+    } else {
+      setDisabled(false);
+    }
+  }, [matchId]);
 
   const changeGameMode = (index) => {
     setSelectedIndex(index);
@@ -123,13 +86,22 @@ export default function HomeScreen({ navigation }) {
       style={{ padding: 20, backgroundColor: "#0E1922", minHeight: "100%" }}
     >
       <ScrollView>
-        <Layout style={{ backgroundColor: "#0E1922" }}>
+        <Layout
+          style={{
+            backgroundColor: "#00000000",
+            display: "flex",
+            flexDirection: "column",
+            height: 600,
+          }}
+        >
           <Select
             selectedIndex={selectedIndex}
             value={gameModes[selectedIndex.row]}
             onSelect={(index) => changeGameMode(index)}
             style={styles.select}
-            disabled={searchingMatch || gameModes.length === 0 || !conected}
+            disabled={
+              searchingMatch || gameModes.length === 0 || !conected || disabled
+            }
           >
             {gameModes.length > 0 &&
               gameModes.map((gameMode) => (
@@ -138,7 +110,7 @@ export default function HomeScreen({ navigation }) {
           </Select>
 
           {/* {status && <Text style={{ marginTop: 5 }}>Estado: {status}</Text>}
-        {messages.length > 0 &&
+          {messages.length > 0 &&
           messages.map((message, index) => (
             <Text key={index} style={{ marginTop: 5 }}>
               {message}
@@ -149,7 +121,9 @@ export default function HomeScreen({ navigation }) {
             checked={checked}
             onChange={onCheckedChange}
             style={{ marginTop: 20 }}
-            disabled={searchingMatch || gameModes.length === 0 || !conected}
+            disabled={
+              searchingMatch || gameModes.length === 0 || !conected || disabled
+            }
           >
             {checked ? `OPEN PARTY` : `CLOSED PARTY`}
           </Toggle>
@@ -165,10 +139,12 @@ export default function HomeScreen({ navigation }) {
             )}
           </Layout>
 
+          <Layout style={{ backgroundColor: "#00000000", flex: 1 }}></Layout>
+
           {gameModes.length > 0 && (
             <Button
               appearance="outline"
-              disabled={gameModes.length === 0 || !conected}
+              disabled={gameModes.length === 0 || !conected || disabled}
               style={{ marginTop: 50, color: "white" }}
               onPress={() => {
                 socket.emit(searchingMatch ? "stopQueue" : "startQueue");

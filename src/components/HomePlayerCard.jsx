@@ -1,15 +1,20 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { Card, Layout, Text, Avatar, Spinner } from "@ui-kitten/components";
 import { StyleSheet } from "react-native";
+import { MainContext } from "../context/MainContext";
 
 export default function HomePlayerCard({ puuid }) {
-  const [playerInfo, setPlayerInfo] = useState({});
+  const { party, playerCards } = useContext(MainContext);
+  const [playerInfo, setPlayerInfo] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [playerImg, setPlayerImg] = useState(null);
 
   useEffect(() => {
     (async () => {
       if (!puuid) return;
-      setLoading(true);
+      if (!playerInfo) {
+        setLoading(true);
+      }
       try {
         await fetch(
           `https://api.henrikdev.xyz/valorant/v1/by-puuid/account/${puuid}`
@@ -25,11 +30,20 @@ export default function HomePlayerCard({ puuid }) {
     })();
   }, [puuid]);
 
+  useEffect(() => {
+    if (!puuid) return;
+    const me = party?.Members.find((member) => member.Subject === puuid);
+    const meCard = me?.PlayerIdentity.PlayerCardID;
+
+    const img = playerCards.find((card) => card.uuid === meCard)?.smallArt;
+    setPlayerImg(img);
+  }, [party, puuid, loading]);
+
   if (!playerInfo || !puuid)
     return (
       <Card style={styles.cardNone} status="primary">
         <Layout style={styles.cardLayoutNone}>
-          <Text>Invite +</Text>
+          {/* <Text>Error :c</Text> */}
         </Layout>
       </Card>
     );
@@ -38,7 +52,15 @@ export default function HomePlayerCard({ puuid }) {
     <Card style={styles.card} status="primary">
       <Layout style={styles.cardLayout}>
         {loading ? (
-          <Layout style={{ display: "flex", justifyContent: "center", alignItems: "center", width: "100%", height: "100%" }}>
+          <Layout
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              width: "100%",
+              height: "100%",
+            }}
+          >
             <Spinner />
           </Layout>
         ) : (
@@ -46,7 +68,7 @@ export default function HomePlayerCard({ puuid }) {
             <Text>{playerInfo?.name}</Text>
             <Avatar
               shape="square"
-              source={{ uri: playerInfo?.card?.small }}
+              source={{ uri: playerImg || playerInfo?.card?.small }}
               style={{ width: 52, height: 52 }}
             />
           </>
