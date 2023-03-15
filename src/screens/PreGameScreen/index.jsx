@@ -213,13 +213,13 @@ export default function PreGameScreen() {
 
   const selectAgent = (agent) => {
     setAgentSelected(agent);
-    socket.emit("selectAgent", agent);
+    socket?.emit("selectAgent", agent);
   };
 
   const lockAgent = () => {
     if (!agentSelected) return;
     setDisabled(true);
-    socket.emit("lockAgent", agentSelected);
+    socket?.emit("lockAgent", agentSelected);
   };
 
   const openModal = () => {
@@ -228,7 +228,7 @@ export default function PreGameScreen() {
 
   const dodge = () => {
     setLoading(true);
-    socket.emit("dodge");
+    socket?.emit("dodge");
   };
 
   return (

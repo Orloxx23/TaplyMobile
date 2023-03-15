@@ -1,4 +1,10 @@
-import React, { createContext, useState, useEffect, useContext, useRef } from "react";
+import React, {
+  createContext,
+  useState,
+  useEffect,
+  useContext,
+  useRef,
+} from "react";
 import io from "socket.io-client";
 import { useNavigation } from "@react-navigation/native";
 import * as Device from "expo-device";
@@ -12,7 +18,7 @@ Notifications.setNotificationHandler({
   }),
 });
 
-const socket = io("http://192.168.20.21:3000/");
+// const socket = io("http://192.168.20.21:7000/");
 
 const MainContext = createContext();
 
@@ -30,10 +36,15 @@ function MainProvider({ children }) {
   const [party, setParty] = useState([]);
   const [partyMembers, setPartyMembers] = useState([]);
   const [me, setMe] = useState(null);
-  const [conected, setConected] = useState(false);
+  const [connected, setConnected] = useState(false);
   const [searchingMatch, setSearchingMatch] = useState(false);
   const [matchData, setMatchData] = useState(null);
   const [matchId, setMatchId] = useState(null);
+  const [socket, setSocket] = useState(io({ autoConnect: false }));
+  const [socketLoading, setSocketLoading] = useState(false);
+  const [socketError, setSocketError] = useState(false);
+  const requestRef = useRef();
+  const timeoutRef = useRef();
 
   /* PUSH NOTIFICATIONS */
   const [expoPushToken, setExpoPushToken] = useState("");
@@ -110,6 +121,40 @@ function MainProvider({ children }) {
 
   /* ------ */
 
+  const cancelAllCallbacks = () => {
+    cancelAnimationFrame(requestRef.current);
+    clearTimeout(timeoutRef.current);
+  };
+
+  const connectToSocket = async (ip = "192.168.20.21") => {
+    setSocketLoading(true);
+    const newSocket = io(`http://${ip}:7000/`);
+
+    newSocket.on("connect", () => {
+      setSocket(newSocket);
+      navigation.navigate("Home");
+      setConnected(true);
+      setSocketLoading(false);
+      setSocketError(false);
+    });
+
+    newSocket.on("connect_error", (error) => {
+      setSocketError(true);
+      console.log("Error al conectar:", error);
+      newSocket.disconnect();
+      setSocket(io({ autoConnect: false }));
+
+      if (navigation.getCurrentRoute().name !== "Setup") return;
+      navigation.navigate("Setup");
+
+      setSocketLoading(false);
+    });
+  };
+
+  // useEffect(() => {
+  //   connectToSocket();
+  // }, []);
+
   useEffect(() => {
     (async () => {
       let url = "https://valorant-api.com/v1/agents";
@@ -168,28 +213,28 @@ function MainProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    socket.on("console", (data) => {
+    socket?.on("console", (data) => {
       setStatus(data);
     });
   }, []);
 
   useEffect(() => {
-    socket.on("puuid", (data) => {
+    socket?.on("puuid", (data) => {
       setPuuid(data);
     });
-  }, []);
+  }, [socket]);
 
   useEffect(() => {
-    socket.on("gamemodes", (data) => {
+    socket?.on("gamemodes", (data) => {
       setGameModes(data);
     });
-  }, []);
+  }, [socket]);
 
   useEffect(() => {
-    socket.on("party", (data) => {
+    socket?.on("party", (data) => {
       setParty(data);
     });
-  }, []);
+  }, [socket]);
 
   useEffect(() => {
     if (!party) return;
@@ -205,35 +250,36 @@ function MainProvider({ children }) {
     }
     setPartyMembers(partyMembers);
     setMe(me?.Subject);
-  }, [party]);
+  }, [party, socket]);
 
   useEffect(() => {
-    socket.on("connected", () => {
-      setConected(true);
+    socket?.on("connected", () => {
+      setConnected(true);
     });
-  }, []);
+  }, [socket]);
 
   useEffect(() => {
-    socket.on("disconnected", () => {
-      setConected(false);
+    socket?.on("disconnected", () => {
+      setConnected(false);
     });
-  }, []);
+  }, [socket]);
 
   useEffect(() => {
-    socket.on("updateData", () => {
+    socket?.on("updateData", () => {
       updateData();
     });
-  }, []);
+  }, [socket]);
 
   useEffect(() => {
-    socket.on("preGameEvent", (data) => {
+    socket?.on("preGameEvent", (data) => {
       setMatchData(data.pregame);
       // console.log("preGameEvent", data.preGameId);
       if (searchingMatch) {
         setSearchingMatch(false);
       }
       if (data.preGameId === undefined || data.preGameId === "undefined") {
-        socket.emit("isInGame");
+        cancelAllCallbacks();
+        socket?.emit("isInGame");
         return;
       }
 
@@ -241,10 +287,10 @@ function MainProvider({ children }) {
       schedulePushNotification("Match found", data.pregame.queue);
       navigation.navigate("PreGame");
     });
-  }, []);
+  }, [socket]);
 
   useEffect(() => {
-    socket.on("inGame", (data) => {
+    socket?.on("inGame", (data) => {
       // console.log("inGame", data);
       if (data || data !== null || data !== "null") {
         // navigation.navigate("InGame");
@@ -256,22 +302,39 @@ function MainProvider({ children }) {
         navigation.navigate("Home");
       }
     });
-  }, []);
+  }, [socket]);
 
   useEffect(() => {
-    socket.on("playerContracts", (data) => {
+    socket?.on("playerContracts", (data) => {
       setPlayerContracts(data);
     });
-  }, []);
+  }, [socket]);
+
+  useEffect(() => {
+    socket?.on("connect_error", (error) => {
+      setSocketError(true);
+      console.log("Error al conectar:", error);
+      socket.disconnect();
+      setSocket(io({ autoConnect: false }));
+      cancelAllCallbacks();
+
+      navigation.navigate("Setup");
+
+      setSocketLoading(false);
+    });
+  }, [socket]);
 
   const updateData = () => {
-    socket.emit("updateData");
+    socket?.emit("updateData");
   };
 
   return (
     <MainContext.Provider
       value={{
         socket,
+        connectToSocket,
+        socketLoading,
+        socketError,
         status,
         messages,
         puuid,
@@ -279,7 +342,7 @@ function MainProvider({ children }) {
         party,
         partyMembers,
         me,
-        conected,
+        connected,
         updateData,
         searchingMatch,
         setSearchingMatch,

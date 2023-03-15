@@ -20,11 +20,12 @@ export default function HomeScreen() {
     me,
     party,
     partyMembers,
-    conected,
+    connected,
     searchingMatch,
     setSearchingMatch,
     updateData,
     matchId,
+    navigation
   } = useContext(MainContext);
 
   const [selectedIndex, setSelectedIndex] = React.useState(new IndexPath(0));
@@ -53,6 +54,7 @@ export default function HomeScreen() {
       }
     } catch (error) {
       console.log(error);
+      navigation.navigate("Setup");
     }
 
     if (party.Accessibility === "open" || party.Accessibility === "OPEN") {
@@ -78,7 +80,7 @@ export default function HomeScreen() {
   }, [matchId]);
 
   useEffect(() => {
-    socket.emit("isInGame");
+    socket?.emit("isInGame");
   }, []);
 
   useEffect(() => {
@@ -114,14 +116,14 @@ export default function HomeScreen() {
 
   const changeGameMode = (index) => {
     setSelectedIndex(index);
-    socket.emit("setGamemode", gameModes[index.row]);
+    socket?.emit("setGamemode", gameModes[index.row]);
   };
 
   const onCheckedChange = (isChecked) => {
     if (isChecked) {
-      socket.emit("partyAccess", "open");
+      socket?.emit("partyAccess", "open");
     } else {
-      socket.emit("partyAccess", "closed");
+      socket?.emit("partyAccess", "closed");
     }
     setChecked(isChecked);
   };
@@ -161,7 +163,7 @@ export default function HomeScreen() {
               disabled={
                 searchingMatch ||
                 gameModes.length === 0 ||
-                !conected ||
+                !connected ||
                 disabled
               }
             >
@@ -182,7 +184,7 @@ export default function HomeScreen() {
               disabled={
                 searchingMatch ||
                 gameModes.length === 0 ||
-                !conected ||
+                !connected ||
                 disabled
               }
             >
@@ -216,10 +218,10 @@ export default function HomeScreen() {
           {gameModes.length > 0 && (
             <Button
               appearance="outline"
-              disabled={gameModes.length === 0 || !conected || disabled}
+              disabled={gameModes.length === 0 || !connected || disabled}
               style={{ marginTop: 10, color: "white" }}
               onPress={() => {
-                socket.emit(searchingMatch ? "stopQueue" : "startQueue");
+                socket?.emit(searchingMatch ? "stopQueue" : "startQueue");
                 setSearchingMatch(!searchingMatch);
               }}
             >
