@@ -232,7 +232,7 @@ export default function SetupScreen() {
           }}
         >
           <Text style={{ color: "white", fontWeight: 700, fontSize: 16 }}>
-            VALORREMOTE
+            TAPLY
           </Text>
           <Icon
             style={{ width: 25, height: 25 }}

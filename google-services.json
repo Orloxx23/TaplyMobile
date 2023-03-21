@@ -7,6 +7,35 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:16656182241:android:c421455b7db0db52d6c0a0",
+        "android_client_info": {
+          "package_name": "com.orloxx.valorremote"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "16656182241-hoo45m8n2rds3cdumt9janikj9s7u719.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBY1ER_X0H5Dmu9StV_w9jRUQ71hQxgDhk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "16656182241-hoo45m8n2rds3cdumt9janikj9s7u719.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:16656182241:android:b2246222d94373c2d6c0a0",
         "android_client_info": {
           "package_name": "com.vlrremote"

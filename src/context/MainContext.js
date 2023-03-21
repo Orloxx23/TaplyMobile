@@ -9,6 +9,7 @@ import io from "socket.io-client";
 import { useNavigation } from "@react-navigation/native";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
+import { ToastAndroid } from "react-native";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -83,6 +84,7 @@ function MainProvider({ children }) {
         data: data,
       },
       trigger: { seconds: 2 },
+      icon: require("../../assets/favicon.png"),
     });
   }
 
@@ -126,7 +128,7 @@ function MainProvider({ children }) {
     clearTimeout(timeoutRef.current);
   };
 
-  const connectToSocket = async (ip = "192.168.20.21") => {
+  const connectToSocket = async (ip) => {
     setSocketLoading(true);
     const newSocket = io(`http://${ip}:7000/`);
 
@@ -136,6 +138,19 @@ function MainProvider({ children }) {
       setConnected(true);
       setSocketLoading(false);
       setSocketError(false);
+    });
+
+    newSocket.on("noLockData", () => {
+      showToast("The game has not started");
+    });
+
+    newSocket.on("disconnect", () => {
+      setConnected(false);
+      setSocket(io({ autoConnect: false }));
+      setSocketLoading(false);
+      setSocketError(false);
+      navigation.navigate("Setup");
+      cancelAllCallbacks();
     });
 
     newSocket.on("connect_error", (error) => {
@@ -154,6 +169,10 @@ function MainProvider({ children }) {
   // useEffect(() => {
   //   connectToSocket();
   // }, []);
+
+  const showToast = (message) => {
+    ToastAndroid.show(message, ToastAndroid.SHORT);
+  };
 
   useEffect(() => {
     (async () => {

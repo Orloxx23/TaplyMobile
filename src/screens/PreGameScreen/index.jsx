@@ -161,7 +161,7 @@ export default function PreGameScreen() {
   const [lockedAgents, setLockedAgents] = useState([]);
   const [disabled, setDisabled] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [mySelection, setMySelection] = useState(null);
+  // const [mySelection, setMySelection] = useState(null);
 
   useEffect(() => {
     BackHandler.addEventListener("hardwareBackPress", function () {
@@ -397,6 +397,7 @@ export default function PreGameScreen() {
                 onTap={() => selectAgent(agent.uuid)}
                 selected={agentSelected === agent.uuid}
                 locked={lockedAgents?.includes(agent.uuid)}
+                disabled={disabled}
               />
             ))
           ) : (

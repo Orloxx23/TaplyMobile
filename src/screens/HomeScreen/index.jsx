@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState } from "react";
-import { StyleSheet, ScrollView } from "react-native";
+import { StyleSheet, ScrollView, BackHandler } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Layout,
@@ -34,6 +34,14 @@ export default function HomeScreen() {
 
   const [segundos, setSegundos] = useState(0);
   const [corriendo, setCorriendo] = useState(false);
+
+  useEffect(() => {
+    BackHandler.addEventListener("hardwareBackPress", function () {
+      socket.disconnect();
+      navigation.navigate("Setup");
+      return true;
+    });
+  }, []);
 
   useEffect(() => {
     if (!party) {

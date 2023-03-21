@@ -3,12 +3,12 @@ import { Avatar, Layout, Card } from "@ui-kitten/components";
 import { Image, Text, TouchableWithoutFeedback } from "react-native";
 import { MainContext } from "../context/MainContext";
 
-export default function AgentButton({ agent, onTap, selected, locked }) {
+export default function AgentButton({ agent, onTap, selected, locked, disabled }) {
   const { contracts, playerContracts } = useContext(MainContext);
   const [available, setAvailable] = useState(false);
 
   const handleClick = () => {
-    if (locked || !available) return;
+    if (locked || !available || disabled) return;
     onTap();
   };
 
