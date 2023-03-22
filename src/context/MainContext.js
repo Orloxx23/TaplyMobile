@@ -167,27 +167,6 @@ function MainProvider({ children }) {
     });
   };
 
-  // Comprueba si la ip esta disponible para conectarse
-  const checkConnection = async (ip) => {
-    if(connected) return;
-    return new Promise((resolve, reject) => {
-      const newSocket = io(`http://${ip}:7000/`);
-      let connected = null;
-
-      newSocket.on("connect", () => {
-        newSocket.disconnect();
-        connected = true;
-        resolve(connected);
-      });
-
-      newSocket.on("connect_error", (error) => {
-        newSocket.disconnect();
-        connected = false;
-        resolve(connected);
-      });
-    });
-  };
-
   // useEffect(() => {
   //   connectToSocket();
   // }, []);
@@ -388,7 +367,6 @@ function MainProvider({ children }) {
       value={{
         socket,
         connectToSocket,
-        checkConnection,
         socketLoading,
         socketError,
         status,
