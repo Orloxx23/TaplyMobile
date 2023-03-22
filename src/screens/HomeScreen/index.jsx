@@ -29,6 +29,7 @@ export default function HomeScreen() {
     updateData,
     matchId,
     navigation,
+    ready
   } = useContext(MainContext);
 
   const [selectedIndex, setSelectedIndex] = React.useState(new IndexPath(0));
@@ -219,10 +220,10 @@ export default function HomeScreen() {
           ))} */}
 
           <Layout style={{ marginTop: 20, backgroundColor: "#0E1922" }}>
-            {me ? <HomePlayerCard puuid={me} /> : <HomePlayerCard puuid={""} />}
+            {me && <HomePlayerCard member={me} />}
             {partyMembers.length > 0 &&
               partyMembers.map((member) => (
-                <HomePlayerCard key={member} puuid={member} />
+                <HomePlayerCard key={member} member={member} />
               ))}
           </Layout>
 
@@ -236,7 +237,7 @@ export default function HomeScreen() {
             <Button
               appearance="outline"
               disabled={
-                !isOwner || gameModes.length === 0 || !connected || disabled
+                !isOwner || gameModes.length === 0 || !connected || disabled || !ready
               }
               style={{ marginTop: 10, color: "white" }}
               onPress={() => {

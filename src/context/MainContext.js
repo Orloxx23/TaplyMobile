@@ -45,6 +45,7 @@ function MainProvider({ children }) {
   const [socketLoading, setSocketLoading] = useState(false);
   const [socketError, setSocketError] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
+  const [ready, setReady] = useState(false);
   const requestRef = useRef();
   const timeoutRef = useRef();
 
@@ -261,11 +262,10 @@ function MainProvider({ children }) {
     if (party.length === 0 || puuid.length === 0) return;
 
     try {
-      const partyMembers = party.Members?.map(
-        (member) => member?.Subject
-      )?.filter((member) => member !== puuid);
 
-      const me = party.Members?.find((member) => member?.Subject === puuid);
+      const partyMembers = party.Members?.filter((member) => member.Subject !== puuid);
+
+      const me = party.Members?.find((member) => member.Subject === puuid);
 
       if (party.State === "MATCHMAKING") {
         setSearchingMatch(true);
@@ -280,7 +280,7 @@ function MainProvider({ children }) {
       }
 
       setPartyMembers(partyMembers);
-      setMe(me?.Subject);
+      setMe(me);
     } catch (error) {
       console.log("error", error);
     }
@@ -375,6 +375,8 @@ function MainProvider({ children }) {
         gameModes,
         party,
         partyMembers,
+        ready,
+        setReady,
         isOwner,
         me,
         connected,
