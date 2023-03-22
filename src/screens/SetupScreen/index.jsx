@@ -16,7 +16,7 @@ import { MainContext } from "../../context/MainContext";
 import ConnectionStatus from "../../components/ConnectionStatus";
 
 export default function SetupScreen() {
-  const { connectToSocket, checkConnection, socketLoading, socketError, navigation } =
+  const { connectToSocket, socketLoading, socketError, navigation } =
     useContext(MainContext);
   const [connections, setConnections] = useState([]);
   const [visible, setVisible] = React.useState(false);
@@ -100,16 +100,7 @@ export default function SetupScreen() {
     const newConnection = {
       id: Math.random().toString(36),
       name: name,
-      ip: ip,
-      status: null,
-      async getStatus() {
-        setInterval(async () => {
-          const connected = await checkConnection(this.ip);
-          this.status = connected;
-        }, 5000);
-
-        return this.status;
-      }
+      ip: ip
     };
     addConnection("connections", newConnection);
     setVisible(false);
