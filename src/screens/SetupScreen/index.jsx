@@ -13,9 +13,10 @@ import {
 } from "@ui-kitten/components";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MainContext } from "../../context/MainContext";
+import ConnectionStatus from "../../components/ConnectionStatus";
 
 export default function SetupScreen() {
-  const { connectToSocket, socketLoading, socketError, navigation } =
+  const { connectToSocket, checkConnection, socketLoading, socketError, navigation } =
     useContext(MainContext);
   const [connections, setConnections] = useState([]);
   const [visible, setVisible] = React.useState(false);
@@ -100,6 +101,15 @@ export default function SetupScreen() {
       id: Math.random().toString(36),
       name: name,
       ip: ip,
+      status: null,
+      async getStatus() {
+        setInterval(async () => {
+          const connected = await checkConnection(this.ip);
+          this.status = connected;
+        }, 5000);
+
+        return this.status;
+      }
     };
     addConnection("connections", newConnection);
     setVisible(false);
@@ -274,6 +284,7 @@ export default function SetupScreen() {
                       display: "flex",
                       flexDirection: "row",
                       alignItems: "center",
+                      gap: 20,
                     }}
                   >
                     <Icon
@@ -288,6 +299,7 @@ export default function SetupScreen() {
                       <Text style={{ fontWeight: 100, fontSize: 16 }}>
                         {connection.ip}
                       </Text>
+                      <ConnectionStatus ip={connection.ip} />
                     </View>
                   </View>
                 </Card>
