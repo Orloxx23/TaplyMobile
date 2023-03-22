@@ -44,6 +44,7 @@ function MainProvider({ children }) {
   const [socket, setSocket] = useState(io({ autoConnect: false }));
   const [socketLoading, setSocketLoading] = useState(false);
   const [socketError, setSocketError] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
   const requestRef = useRef();
   const timeoutRef = useRef();
 
@@ -166,6 +167,27 @@ function MainProvider({ children }) {
     });
   };
 
+  // Comprueba si la ip esta disponible para conectarse
+  const checkConnection = async (ip) => {
+    if(connected) return;
+    return new Promise((resolve, reject) => {
+      const newSocket = io(`http://${ip}:7000/`);
+      let connected = null;
+
+      newSocket.on("connect", () => {
+        newSocket.disconnect();
+        connected = true;
+        resolve(connected);
+      });
+
+      newSocket.on("connect_error", (error) => {
+        newSocket.disconnect();
+        connected = false;
+        resolve(connected);
+      });
+    });
+  };
+
   // useEffect(() => {
   //   connectToSocket();
   // }, []);
@@ -258,17 +280,31 @@ function MainProvider({ children }) {
   useEffect(() => {
     if (!party) return;
     if (party.length === 0 || puuid.length === 0) return;
-    const partyMembers = party.Members?.map(
-      (member) => member?.Subject
-    )?.filter((member) => member !== puuid);
-    const me = party.Members?.find((member) => member?.Subject === puuid);
-    if (party.State === "MATCHMAKING") {
-      setSearchingMatch(true);
-    } else {
-      setSearchingMatch(false);
+
+    try {
+      const partyMembers = party.Members?.map(
+        (member) => member?.Subject
+      )?.filter((member) => member !== puuid);
+
+      const me = party.Members?.find((member) => member?.Subject === puuid);
+
+      if (party.State === "MATCHMAKING") {
+        setSearchingMatch(true);
+      } else {
+        setSearchingMatch(false);
+      }
+
+      if ("IsOwner" in me) {
+        setIsOwner(true);
+      } else {
+        setIsOwner(false);
+      }
+
+      setPartyMembers(partyMembers);
+      setMe(me?.Subject);
+    } catch (error) {
+      console.log("error", error);
     }
-    setPartyMembers(partyMembers);
-    setMe(me?.Subject);
   }, [party, socket]);
 
   useEffect(() => {
@@ -352,6 +388,7 @@ function MainProvider({ children }) {
       value={{
         socket,
         connectToSocket,
+        checkConnection,
         socketLoading,
         socketError,
         status,
@@ -360,8 +397,10 @@ function MainProvider({ children }) {
         gameModes,
         party,
         partyMembers,
+        isOwner,
         me,
         connected,
+        setConnected,
         updateData,
         searchingMatch,
         setSearchingMatch,

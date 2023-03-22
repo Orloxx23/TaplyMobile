@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState } from "react";
-import { StyleSheet, ScrollView, BackHandler } from "react-native";
+import { StyleSheet, ScrollView, BackHandler, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Layout,
@@ -9,6 +9,7 @@ import {
   Button,
   Toggle,
   Text,
+  Spinner,
 } from "@ui-kitten/components";
 import { HomePlayerCard } from "../../components";
 import { MainContext } from "../../context/MainContext";
@@ -20,12 +21,14 @@ export default function HomeScreen() {
     me,
     party,
     partyMembers,
+    isOwner,
     connected,
+    setConnected,
     searchingMatch,
     setSearchingMatch,
     updateData,
     matchId,
-    navigation
+    navigation,
   } = useContext(MainContext);
 
   const [selectedIndex, setSelectedIndex] = React.useState(new IndexPath(0));
@@ -35,9 +38,12 @@ export default function HomeScreen() {
   const [segundos, setSegundos] = useState(0);
   const [corriendo, setCorriendo] = useState(false);
 
+  const [loading, setLoading] = useState(false);
+
   useEffect(() => {
     BackHandler.addEventListener("hardwareBackPress", function () {
       socket.disconnect();
+      setConnected(false);
       navigation.navigate("Setup");
       return true;
     });
@@ -54,15 +60,18 @@ export default function HomeScreen() {
     if (party.length === 0 || puuid.length === 0) return;
 
     try {
-      const queue = party.MatchmakingData.QueueID;
+      const queue = party?.MatchmakingData?.QueueID;
       for (let i = 0; i < gameModes.length; i++) {
         if (gameModes[i].includes(queue)) {
           setSelectedIndex(new IndexPath(i));
         }
       }
     } catch (error) {
-      console.log(error);
-      navigation.navigate("Setup");
+      console.log("🚀 ~ file: index.jsx:65 ~ useEffect ~ error:", error);
+      console.log("party", party);
+      console.log("matchmakingdata", party?.MatchmakingData);
+      console.log("queue", party?.MatchmakingData?.QueueID);
+      // navigation.navigate("Setup");
     }
 
     if (party.Accessibility === "open" || party.Accessibility === "OPEN") {
@@ -136,7 +145,6 @@ export default function HomeScreen() {
     setChecked(isChecked);
   };
 
-
   const minutos = Math.floor(segundos / 60);
   const segundosRestantes = segundos % 60;
 
@@ -169,6 +177,7 @@ export default function HomeScreen() {
               onSelect={(index) => changeGameMode(index)}
               style={styles.select}
               disabled={
+                !isOwner ||
                 searchingMatch ||
                 gameModes.length === 0 ||
                 !connected ||
@@ -190,6 +199,7 @@ export default function HomeScreen() {
               onChange={onCheckedChange}
               style={{ flex: 1 }}
               disabled={
+                !isOwner ||
                 searchingMatch ||
                 gameModes.length === 0 ||
                 !connected ||
@@ -210,23 +220,24 @@ export default function HomeScreen() {
 
           <Layout style={{ marginTop: 20, backgroundColor: "#0E1922" }}>
             {me ? <HomePlayerCard puuid={me} /> : <HomePlayerCard puuid={""} />}
-            {/*partyMembers.length > 0 ? (
+            {partyMembers.length > 0 &&
               partyMembers.map((member) => (
                 <HomePlayerCard key={member} puuid={member} />
-              ))
-            ) : (
-              <Button disabled>Invitar</Button>
-            )*/}
+              ))}
           </Layout>
+
+          {partyMembers.length < 4 && <Button disabled>Invite</Button>}
 
           <Layout style={{ backgroundColor: "#00000000", flex: 1 }}></Layout>
 
           {/*matchId && <Button>Enter the game</Button>*/}
 
-          {gameModes.length > 0 && (
+          {gameModes.length > 0 && isOwner === true && (
             <Button
               appearance="outline"
-              disabled={gameModes.length === 0 || !connected || disabled}
+              disabled={
+                !isOwner || gameModes.length === 0 || !connected || disabled
+              }
               style={{ marginTop: 10, color: "white" }}
               onPress={() => {
                 socket?.emit(searchingMatch ? "stopQueue" : "startQueue");
@@ -234,10 +245,33 @@ export default function HomeScreen() {
               }}
             >
               {searchingMatch
-                ? (searchingMatch ? (`${minutos.toString().padStart(2, "0")}:${segundosRestantes
-                  .toString()
-                  .padStart(2, "0")}`) : ("InMatch"))
+                ? searchingMatch
+                  ? `${minutos.toString().padStart(2, "0")}:${segundosRestantes
+                      .toString()
+                      .padStart(2, "0")}`
+                  : "InMatch"
                 : "START"}
+            </Button>
+          )}
+
+          {isOwner === false && (
+            <Button
+              appearance="outline"
+              onPress={() => {
+                setLoading(true);
+                socket?.emit("leaveParty");
+                setTimeout(() => {
+                  setLoading(false);
+                }, 10000);
+              }}
+            >
+              {loading ? (
+                <View>
+                  <Spinner />
+                </View>
+              ) : (
+                "Leave Party"
+              )}
             </Button>
           )}
         </Layout>
