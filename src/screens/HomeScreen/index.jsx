@@ -1,5 +1,12 @@
 import React, { useContext, useEffect, useState } from "react";
-import { StyleSheet, ScrollView, BackHandler, View } from "react-native";
+import {
+  StyleSheet,
+  ScrollView,
+  BackHandler,
+  View,
+  Modal,
+  TouchableWithoutFeedback,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Layout,
@@ -10,9 +17,13 @@ import {
   Toggle,
   Text,
   Spinner,
+  Card,
+  Icon,
+  Divider,
 } from "@ui-kitten/components";
 import { HomePlayerCard } from "../../components";
 import { MainContext } from "../../context/MainContext";
+import CardFriend from "../../components/CardFriend";
 export default function HomeScreen() {
   const {
     socket,
@@ -29,7 +40,8 @@ export default function HomeScreen() {
     updateData,
     matchId,
     navigation,
-    ready
+    ready,
+    friends,
   } = useContext(MainContext);
 
   const [selectedIndex, setSelectedIndex] = React.useState(new IndexPath(0));
@@ -40,6 +52,9 @@ export default function HomeScreen() {
   const [corriendo, setCorriendo] = useState(false);
 
   const [loading, setLoading] = useState(false);
+
+  const [inviteModalVisible, setInviteModalVisible] = useState(false);
+  const [friendsInvited, setFriendsInvited] = useState([]);
 
   useEffect(() => {
     BackHandler.addEventListener("hardwareBackPress", function () {
@@ -146,72 +161,187 @@ export default function HomeScreen() {
     setChecked(isChecked);
   };
 
+  const showFriends = () => {
+    socket?.emit("getFriends");
+    setInviteModalVisible(true);
+  };
+
+  const invite = (friend) => {
+    const tempFriend = {
+      name: friend.game_name,
+      tag: friend.game_tag,
+    }
+    socket?.emit("invite", tempFriend);
+    setFriendsInvited([...friendsInvited, friend.puuid]);
+    setTimeout(() => {
+      setFriendsInvited([])
+    }, 10000);
+  };
+
   const minutos = Math.floor(segundos / 60);
   const segundosRestantes = segundos % 60;
 
   return (
-    <SafeAreaView
-      style={{ padding: 20, backgroundColor: "#0E1922", minHeight: "100%" }}
-    >
-      <ScrollView>
-        <Layout
+    <>
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={inviteModalVisible}
+        onRequestClose={() => {
+          setInviteModalVisible(!inviteModalVisible);
+        }}
+      >
+        <View
           style={{
-            backgroundColor: "#00000000",
-            display: "flex",
-            flexDirection: "column",
-            height: 600,
+            flex: 1,
+            justifyContent: "center",
+            alignItems: "center",
+            backgroundColor: "#000000aa",
+            position: "relative",
           }}
         >
+          <TouchableWithoutFeedback
+            onPress={() => setInviteModalVisible(false)}
+          >
+            <View
+              style={{
+                flex: 1,
+                width: "100%",
+                height: "100%",
+                position: "absolute",
+              }}
+            />
+          </TouchableWithoutFeedback>
+          <Card disabled={true} style={{ width: "90%", height: "70%" }}>
+            <View
+              style={{
+                width: "100%",
+                display: "flex",
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <View style={{ width: "33%" }} />
+              <View style={{ width: "33%" }}>
+                <Text
+                  category="h5"
+                  style={{
+                    textAlign: "center",
+                  }}
+                >
+                  INVITE
+                </Text>
+              </View>
+              <View
+                style={{
+                  width: "33%",
+                  display: "flex",
+                  flexDirection: "row",
+                  justifyContent: "flex-end",
+                }}
+              >
+                <Icon
+                  fill="#8F9BB3"
+                  name="close-outline"
+                  style={{ width: 32, height: 32 }}
+                  onPress={() => setInviteModalVisible(false)}
+                />
+              </View>
+            </View>
+            <Divider style={{ margin: 15 }} />
+            <ScrollView
+              style={{
+                height: "80%",
+              }}
+            >
+              <View
+                style={{
+                  height: "100%",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 20,
+                }}
+              >
+                {friends?.length > 0 ? (
+                  friends?.map((friend) => (
+                    <CardFriend
+                      key={friend.puuid + "1"}
+                      friend={friend}
+                      invited={friendsInvited.includes(friend.puuid)}
+                      action={invite}
+                    />
+                  ))
+                ) : (
+                  <View />
+                )}
+              </View>
+            </ScrollView>
+          </Card>
+        </View>
+      </Modal>
+      <SafeAreaView
+        style={{ padding: 20, backgroundColor: "#0E1922", minHeight: "100%" }}
+      >
+        <ScrollView>
           <Layout
             style={{
               backgroundColor: "#00000000",
               display: "flex",
-              flexDirection: "row",
-              gap: 20,
-              justifyContent: "space-between",
-              alignItems: "center",
+              flexDirection: "column",
+              height: 600,
             }}
           >
-            <Select
-              selectedIndex={selectedIndex}
-              value={gameModes[selectedIndex.row]}
-              onSelect={(index) => changeGameMode(index)}
-              style={styles.select}
-              disabled={
-                !isOwner ||
-                searchingMatch ||
-                gameModes.length === 0 ||
-                !connected ||
-                disabled
-              }
+            <Layout
+              style={{
+                backgroundColor: "#00000000",
+                display: "flex",
+                flexDirection: "row",
+                gap: 20,
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
             >
-              {gameModes.length > 0 &&
-                gameModes.map((gameMode) => (
-                  <SelectItem
-                    style={{ textTransform: "capitalize" }}
-                    title={gameMode}
-                    key={gameMode}
-                  />
-                ))}
-            </Select>
+              <Select
+                selectedIndex={selectedIndex}
+                value={gameModes[selectedIndex.row]}
+                onSelect={(index) => changeGameMode(index)}
+                style={styles.select}
+                disabled={
+                  !isOwner ||
+                  searchingMatch ||
+                  gameModes.length === 0 ||
+                  !connected ||
+                  disabled
+                }
+              >
+                {gameModes.length > 0 &&
+                  gameModes.map((gameMode) => (
+                    <SelectItem
+                      style={{ textTransform: "capitalize" }}
+                      title={gameMode}
+                      key={gameMode}
+                    />
+                  ))}
+              </Select>
 
-            <Toggle
-              checked={checked}
-              onChange={onCheckedChange}
-              style={{ flex: 1 }}
-              disabled={
-                !isOwner ||
-                searchingMatch ||
-                gameModes.length === 0 ||
-                !connected ||
-                disabled
-              }
-            >
-              {checked ? `OPEN PARTY` : `CLOSED PARTY`}
-            </Toggle>
-          </Layout>
+              <Toggle
+                checked={checked}
+                onChange={onCheckedChange}
+                style={{ flex: 1 }}
+                disabled={
+                  !isOwner ||
+                  searchingMatch ||
+                  gameModes.length === 0 ||
+                  !connected ||
+                  disabled
+                }
+              >
+                {checked ? `OPEN PARTY` : `CLOSED PARTY`}
+              </Toggle>
+            </Layout>
 
-          {/* {status && <Text style={{ marginTop: 5 }}>Estado: {status}</Text>}
+            {/* {status && <Text style={{ marginTop: 5 }}>Estado: {status}</Text>}
           {messages.length > 0 &&
           messages.map((message, index) => (
             <Text key={index} style={{ marginTop: 5 }}>
@@ -219,65 +349,76 @@ export default function HomeScreen() {
             </Text>
           ))} */}
 
-          <Layout style={{ marginTop: 20, backgroundColor: "#0E1922" }}>
-            {me && <HomePlayerCard member={me} />}
-            {partyMembers.length > 0 &&
-              partyMembers.map((member) => (
-                <HomePlayerCard key={member} member={member} />
-              ))}
+            <Layout style={{ marginTop: 20, backgroundColor: "#0E1922" }}>
+              {me && <HomePlayerCard member={me} />}
+              {partyMembers.length > 0 &&
+                partyMembers.map((member) => (
+                  <HomePlayerCard key={member} member={member} />
+                ))}
+            </Layout>
+
+            {partyMembers.length < 4 && (
+              <Button appearance="ghost" onPress={showFriends}>
+                Invite
+              </Button>
+            )}
+
+            <Layout style={{ backgroundColor: "#00000000", flex: 1 }}></Layout>
+
+            {/*matchId && <Button>Enter the game</Button>*/}
+
+            {gameModes.length > 0 && isOwner === true && (
+              <Button
+                appearance="outline"
+                disabled={
+                  !isOwner ||
+                  gameModes.length === 0 ||
+                  !connected ||
+                  disabled ||
+                  !ready
+                }
+                style={{ marginTop: 10, color: "white" }}
+                onPress={() => {
+                  socket?.emit(searchingMatch ? "stopQueue" : "startQueue");
+                  setSearchingMatch(!searchingMatch);
+                }}
+              >
+                {searchingMatch
+                  ? searchingMatch
+                    ? `${minutos
+                        .toString()
+                        .padStart(2, "0")}:${segundosRestantes
+                        .toString()
+                        .padStart(2, "0")}`
+                    : "InMatch"
+                  : "START"}
+              </Button>
+            )}
+
+            {isOwner === false && (
+              <Button
+                appearance="outline"
+                onPress={() => {
+                  setLoading(true);
+                  socket?.emit("leaveParty");
+                  setTimeout(() => {
+                    setLoading(false);
+                  }, 10000);
+                }}
+              >
+                {loading ? (
+                  <View>
+                    <Spinner />
+                  </View>
+                ) : (
+                  "Leave Party"
+                )}
+              </Button>
+            )}
           </Layout>
-
-          {partyMembers.length < 4 && <Button disabled>Invite</Button>}
-
-          <Layout style={{ backgroundColor: "#00000000", flex: 1 }}></Layout>
-
-          {/*matchId && <Button>Enter the game</Button>*/}
-
-          {gameModes.length > 0 && isOwner === true && (
-            <Button
-              appearance="outline"
-              disabled={
-                !isOwner || gameModes.length === 0 || !connected || disabled || !ready
-              }
-              style={{ marginTop: 10, color: "white" }}
-              onPress={() => {
-                socket?.emit(searchingMatch ? "stopQueue" : "startQueue");
-                setSearchingMatch(!searchingMatch);
-              }}
-            >
-              {searchingMatch
-                ? searchingMatch
-                  ? `${minutos.toString().padStart(2, "0")}:${segundosRestantes
-                      .toString()
-                      .padStart(2, "0")}`
-                  : "InMatch"
-                : "START"}
-            </Button>
-          )}
-
-          {isOwner === false && (
-            <Button
-              appearance="outline"
-              onPress={() => {
-                setLoading(true);
-                socket?.emit("leaveParty");
-                setTimeout(() => {
-                  setLoading(false);
-                }, 10000);
-              }}
-            >
-              {loading ? (
-                <View>
-                  <Spinner />
-                </View>
-              ) : (
-                "Leave Party"
-              )}
-            </Button>
-          )}
-        </Layout>
-      </ScrollView>
-    </SafeAreaView>
+        </ScrollView>
+      </SafeAreaView>
+    </>
   );
 }
 

@@ -46,6 +46,8 @@ function MainProvider({ children }) {
   const [socketError, setSocketError] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
   const [ready, setReady] = useState(false);
+  const [friends, setFriends] = useState([]);
+
   const requestRef = useRef();
   const timeoutRef = useRef();
 
@@ -345,6 +347,12 @@ function MainProvider({ children }) {
   }, [socket]);
 
   useEffect(() => {
+    socket?.on("friends", (data) => {
+      setFriends(data);
+    });
+  }, [socket]);
+
+  useEffect(() => {
     socket?.on("connect_error", (error) => {
       setSocketError(true);
       console.log("Error al conectar:", error);
@@ -392,6 +400,7 @@ function MainProvider({ children }) {
         playerCards,
         contracts,
         playerContracts,
+        friends
       }}
     >
       {children}
