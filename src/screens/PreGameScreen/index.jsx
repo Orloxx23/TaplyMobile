@@ -330,7 +330,7 @@ export default function PreGameScreen() {
                 >
                   {matchData &&
                     matchData.team
-                      ?.filter((player) => player.Subject !== me)
+                      ?.filter((player) => player.Subject !== me.Subject)
                       ?.map((player) => (
                         <TeammateAgent key={player.Subject} player={player} />
                       ))}

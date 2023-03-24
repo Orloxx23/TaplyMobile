@@ -3,7 +3,13 @@ import { Avatar, Layout, Card } from "@ui-kitten/components";
 import { Image, Text, TouchableWithoutFeedback } from "react-native";
 import { MainContext } from "../context/MainContext";
 
-export default function AgentButton({ agent, onTap, selected, locked, disabled }) {
+export default function AgentButton({
+  agent,
+  onTap,
+  selected,
+  locked,
+  disabled,
+}) {
   const { contracts, playerContracts } = useContext(MainContext);
   const [available, setAvailable] = useState(false);
 
@@ -35,6 +41,17 @@ export default function AgentButton({ agent, onTap, selected, locked, disabled }
     if (playerContract.ProgressionLevelReached >= 5) {
       setAvailable(true);
     } else {
+      if (
+        agentContract.uuid === "e13d0f6f-5727-43bc-af9e-56c10cdb7176" ||
+        agentContract.uuid === "c9d1c451-12fc-4601-a97c-8258765fb90d" ||
+        agentContract.uuid === "ace2bb52-de25-45b5-8e11-3dd2088f914d" ||
+        agentContract.uuid === "3051fb18-9240-4bf3-a9f5-eb9ae954cd9d" ||
+        agentContract.uuid === "62b5521c-93f6-4178-aadd-043ed25ed21a"
+      ) {
+        setAvailable(true);
+        return;
+      }
+
       setAvailable(false);
     }
   }, [contracts, agent]);
