@@ -23,7 +23,8 @@
         "backgroundColor": "#0E1922"
       },
       "googleServicesFile": "./google-services.json",
-      "package": "com.orloxx.valorremote"
+      "package": "com.orloxx.valorremote",
+      "versionCode": 1
     },
     "web": {
       "favicon": "./assets/favicon.png"
