@@ -6,6 +6,7 @@ import {
   View,
   Modal,
   TouchableWithoutFeedback,
+  Dimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -181,6 +182,8 @@ export default function HomeScreen() {
   const minutos = Math.floor(segundos / 60);
   const segundosRestantes = segundos % 60;
 
+  const windowHeight = Dimensions.get('screen').height;
+
   return (
     <>
       <Modal
@@ -281,7 +284,7 @@ export default function HomeScreen() {
         </View>
       </Modal>
       <SafeAreaView
-        style={{ padding: 20, backgroundColor: "#0E1922", minHeight: "100%" }}
+        style={{ padding: 20, backgroundColor: "#0E1922", minHeight: windowHeight, height: "100%" }}
       >
         <ScrollView>
           <Layout
@@ -289,7 +292,7 @@ export default function HomeScreen() {
               backgroundColor: "#00000000",
               display: "flex",
               flexDirection: "column",
-              height: 600,
+              height: windowHeight/1.18,
             }}
           >
             <Layout

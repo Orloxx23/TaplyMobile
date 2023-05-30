@@ -21,12 +21,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { MainContext } from "../../context/MainContext";
 
 export default function SetupScreen() {
-  const {
-    connectToSocket,
-    socketLoading,
-    socketError,
-    navigation,
-  } = useContext(MainContext);
+  const { connectToSocket, socketLoading, socketError, navigation } =
+    useContext(MainContext);
   const [connections, setConnections] = useState([]);
   const [visible, setVisible] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
@@ -35,13 +31,26 @@ export default function SetupScreen() {
   const [selectedConnection, setSelectedConnection] = React.useState(null);
 
   const [name, setName] = React.useState("Connection");
-  const [ip, setIp] = React.useState("0.0.0.0");
+  const [code, setCode] = React.useState("0000");
 
   useEffect(() => {
     readArrayFromStorage("connections").then((value) => {
       setConnections(value);
     });
   }, []);
+
+  const hexToIp = (hexString) => {
+    let ipAddress = "192.168.";
+    for (let i = 0; i < hexString.length; i += 2) {
+      let octetoHex = hexString.substr(i, 2);
+      let octeto = parseInt(octetoHex, 16).toString();
+      ipAddress += octeto;
+      if (i < hexString.length - 2) {
+        ipAddress += ".";
+      }
+    }
+    return ipAddress;
+  }
 
   const readArrayFromStorage = async (key) => {
     try {
@@ -70,10 +79,9 @@ export default function SetupScreen() {
     try {
       const existingArray = await readArrayFromStorage(key);
       const updatedArray = [...existingArray, newValue];
-      console.log(newValue.id)
       await saveArrayToStorage(key, updatedArray);
       setName("Connection");
-      setIp("");
+      setCode("");
       console.log("Value added to array successfully");
     } catch (e) {
       console.log("Error adding value to array: ", e);
@@ -110,17 +118,17 @@ export default function SetupScreen() {
 
   const createConnection = () => {
     const newConnection = {
-      id: (Math.random()*100000).toFixed(0),
+      id: (Math.random() * 100000).toFixed(0),
       name: name,
-      ip: ip,
+      code: code,
     };
     addConnection("connections", newConnection);
     setVisible(false);
   };
 
-  const connect = (ip) => {
+  const connect = (code) => {
     setLoading(true);
-    connectToSocket(ip);
+    connectToSocket(hexToIp(code));
   };
 
   const okError = () => {
@@ -179,9 +187,9 @@ export default function SetupScreen() {
 
               <Text style={{ marginTop: 10 }}>Code</Text>
               <Input
-                placeholder="0.0.0.0"
+                placeholder="0000"
                 keyboardType="numeric"
-                onChangeText={(nextValue) => setIp(nextValue)}
+                onChangeText={(nextValue) => setCode(nextValue)}
               />
               <Button
                 style={{ marginTop: 20 }}
@@ -193,10 +201,7 @@ export default function SetupScreen() {
           </View>
         </Modal>
 
-        <Modal
-          animationType="fade"
-          transparent={true}
-          visible={loading}>
+        <Modal animationType="fade" transparent={true} visible={loading}>
           <View
             style={{
               flex: 1,
@@ -361,7 +366,7 @@ export default function SetupScreen() {
                     key={connection.id}
                     style={{ width: 500, height: 200, marginBottom: 20 }}
                     status="primary"
-                    onPress={() => connect(connection.ip)}
+                    onPress={() => connect(connection.code)}
                     onLongPress={() => {
                       setOptionsVisible(true);
                       setSelectedConnection(connection.id);
@@ -387,9 +392,9 @@ export default function SetupScreen() {
                         <Text style={{ fontWeight: 700, fontSize: 16 }}>
                           {connection.name}
                         </Text>
-                        <Text style={{ fontWeight: 100, fontSize: 16 }}>
-                          {connection.ip}
-                        </Text>
+                        {/* <Text style={{ fontWeight: 100, fontSize: 16 }}>
+                          {connection.code}
+                        </Text> */}
                       </View>
                     </View>
                   </Card>
