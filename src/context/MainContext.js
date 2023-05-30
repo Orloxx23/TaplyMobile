@@ -44,6 +44,10 @@ function MainProvider({ children }) {
   const [socket, setSocket] = useState(io({ autoConnect: false }));
   const [socketLoading, setSocketLoading] = useState(false);
   const [socketError, setSocketError] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
+  const [ready, setReady] = useState(false);
+  const [friends, setFriends] = useState([]);
+
   const requestRef = useRef();
   const timeoutRef = useRef();
 
@@ -258,17 +262,30 @@ function MainProvider({ children }) {
   useEffect(() => {
     if (!party) return;
     if (party.length === 0 || puuid.length === 0) return;
-    const partyMembers = party.Members?.map(
-      (member) => member?.Subject
-    )?.filter((member) => member !== puuid);
-    const me = party.Members?.find((member) => member?.Subject === puuid);
-    if (party.State === "MATCHMAKING") {
-      setSearchingMatch(true);
-    } else {
-      setSearchingMatch(false);
+
+    try {
+
+      const partyMembers = party.Members?.filter((member) => member.Subject !== puuid);
+
+      const me = party.Members?.find((member) => member.Subject === puuid);
+
+      if (party.State === "MATCHMAKING") {
+        setSearchingMatch(true);
+      } else {
+        setSearchingMatch(false);
+      }
+
+      if ("IsOwner" in me) {
+        setIsOwner(true);
+      } else {
+        setIsOwner(false);
+      }
+
+      setPartyMembers(partyMembers);
+      setMe(me);
+    } catch (error) {
+      console.log("error", error);
     }
-    setPartyMembers(partyMembers);
-    setMe(me?.Subject);
   }, [party, socket]);
 
   useEffect(() => {
@@ -330,6 +347,12 @@ function MainProvider({ children }) {
   }, [socket]);
 
   useEffect(() => {
+    socket?.on("friends", (data) => {
+      setFriends(data);
+    });
+  }, [socket]);
+
+  useEffect(() => {
     socket?.on("connect_error", (error) => {
       setSocketError(true);
       console.log("Error al conectar:", error);
@@ -360,8 +383,12 @@ function MainProvider({ children }) {
         gameModes,
         party,
         partyMembers,
+        ready,
+        setReady,
+        isOwner,
         me,
         connected,
+        setConnected,
         updateData,
         searchingMatch,
         setSearchingMatch,
@@ -373,6 +400,7 @@ function MainProvider({ children }) {
         playerCards,
         contracts,
         playerContracts,
+        friends
       }}
     >
       {children}

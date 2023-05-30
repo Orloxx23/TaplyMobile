@@ -3,21 +3,21 @@ import { Card, Layout, Text, Avatar, Spinner } from "@ui-kitten/components";
 import { StyleSheet } from "react-native";
 import { MainContext } from "../context/MainContext";
 
-export default function HomePlayerCard({ puuid }) {
-  const { party, playerCards } = useContext(MainContext);
+export default function HomePlayerCard({ member }) {
+  const { party, playerCards, setReady } = useContext(MainContext);
   const [playerInfo, setPlayerInfo] = useState(null);
   const [loading, setLoading] = useState(false);
   const [playerImg, setPlayerImg] = useState(null);
 
   useEffect(() => {
     (async () => {
-      if (!puuid) return;
+      if (!member) return;
       if (!playerInfo) {
         setLoading(true);
       }
       try {
         await fetch(
-          `https://api.henrikdev.xyz/valorant/v1/by-puuid/account/${puuid}`
+          `https://api.henrikdev.xyz/valorant/v1/by-puuid/account/${member.Subject}`
         )
           .then((response) => response.json())
           .then((data) => {
@@ -28,18 +28,29 @@ export default function HomePlayerCard({ puuid }) {
         console.log("🚀 ~ file: HomePlayerCard.jsx:20 ~ error:", error);
       }
     })();
-  }, [puuid]);
+  }, [member]);
 
   useEffect(() => {
-    if (!puuid) return;
-    const me = party?.Members?.find((member) => member.Subject === puuid);
+    if (!member || member === "") return;
+
+    const me = party?.Members?.find((tmpmember) => tmpmember.Subject === member.Subject);
     const meCard = me?.PlayerIdentity.PlayerCardID;
 
     const img = playerCards?.find((card) => card.uuid === meCard)?.smallArt;
     setPlayerImg(img);
-  }, [party, puuid, loading]);
+  }, [party, member, loading]);
 
-  if (!playerInfo || !puuid)
+  useEffect(() => {
+    if(!member || member === "") return;
+
+    if(member.IsReady){
+      setReady(true);
+    } else {
+      setReady(false);
+    }
+  }, [party, member]);
+
+  if (!playerInfo || !member || member === "")
     return (
       <Card style={styles.cardNone} status="primary">
         <Layout style={styles.cardLayoutNone}>
@@ -49,7 +60,7 @@ export default function HomePlayerCard({ puuid }) {
     );
 
   return (
-    <Card style={styles.card} status="primary">
+    <Card style={styles.card} status={member.IsReady ? "primary" : "basic"}>
       <Layout style={styles.cardLayout}>
         {loading ? (
           <Layout
@@ -89,6 +100,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    backgroundColor: "#00000000",
   },
 
   cardLayoutNone: {
