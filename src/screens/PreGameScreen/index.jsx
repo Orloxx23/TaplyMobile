@@ -153,10 +153,9 @@ const LoadingIndicator = (props) => (
 );
 
 export default function PreGameScreen() {
-  const { socket, matchData, me, agents, maps } = useContext(MainContext);
+  const { socket, matchData, me, agents, matchMap } = useContext(MainContext);
   const [agentSelected, setAgentSelected] = useState(null);
   const [visible, setVisible] = useState(false);
-  const [matchMap, setMatchMap] = useState({});
   const [gamemode, setGamemode] = useState(null);
   const [lockedAgents, setLockedAgents] = useState([]);
   const [disabled, setDisabled] = useState(false);
@@ -168,13 +167,6 @@ export default function PreGameScreen() {
       return true;
     });
   }, []);
-
-  useEffect(() => {
-    if (!maps.length > 0) return;
-    const tempMap =
-      matchData && maps.find((map) => map.mapUrl === matchData.map);
-    setMatchMap(tempMap);
-  }, [maps]);
 
   useEffect(() => {
     if (!matchData) return;

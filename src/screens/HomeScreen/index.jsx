@@ -76,6 +76,7 @@ export default function HomeScreen() {
     if (matchId) {
       setDisabled(true);
       setSearchingMatch(false);
+      navigation.navigate("InGame");
     } else {
       if (party.State === "MATCHMAKING") {
         setSearchingMatch(true);

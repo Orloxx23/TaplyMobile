@@ -27,6 +27,7 @@ function MainProvider({ children }) {
   const navigation = useNavigation();
   const [agents, setAgents] = useState([]);
   const [maps, setMaps] = useState([]);
+  const [matchMap, setMatchMap] = useState({});
   const [contracts, setContracts] = useState([]);
   const [playerCards, setPlayerCards] = useState([]);
   const [playerContracts, setPlayerContracts] = useState(null);
@@ -44,6 +45,11 @@ function MainProvider({ children }) {
   const [socket, setSocket] = useState(io({ autoConnect: false }));
   const [socketLoading, setSocketLoading] = useState(false);
   const [socketError, setSocketError] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
+  const [ready, setReady] = useState(false);
+  const [friends, setFriends] = useState([]);
+  const [scoreMatch, setScoreMatch] = useState({ allyTeam: 0, enemyTeam: 0, map: "" });
+
   const requestRef = useRef();
   const timeoutRef = useRef();
 
@@ -230,6 +236,14 @@ function MainProvider({ children }) {
   }, []);
 
   useEffect(() => {
+    if (!maps.length > 0) return;
+    const tempMap =
+      matchData && maps.find((map) => map.mapUrl === matchData.map);
+
+    setMatchMap(tempMap);
+  }, [matchData]);
+
+  useEffect(() => {
     let url = "https://valorant-api.com/v1/playercards";
 
     let options = { method: "GET" };
@@ -278,17 +292,31 @@ function MainProvider({ children }) {
   useEffect(() => {
     if (!party) return;
     if (party.length === 0 || puuid.length === 0) return;
-    const partyMembers = party.Members?.map(
-      (member) => member?.Subject
-    )?.filter((member) => member !== puuid);
-    const me = party.Members?.find((member) => member?.Subject === puuid);
-    if (party.State === "MATCHMAKING") {
-      setSearchingMatch(true);
-    } else {
-      setSearchingMatch(false);
+
+    try {
+      const partyMembers = party.Members?.filter(
+        (member) => member.Subject !== puuid
+      );
+
+      const me = party.Members?.find((member) => member.Subject === puuid);
+
+      if (party.State === "MATCHMAKING") {
+        setSearchingMatch(true);
+      } else {
+        setSearchingMatch(false);
+      }
+
+      if ("IsOwner" in me) {
+        setIsOwner(true);
+      } else {
+        setIsOwner(false);
+      }
+
+      setPartyMembers(partyMembers);
+      setMe(me);
+    } catch (error) {
+      console.log("error", error);
     }
-    setPartyMembers(partyMembers);
-    setMe(me?.Subject);
   }, [party, socket]);
 
   useEffect(() => {
@@ -311,6 +339,7 @@ function MainProvider({ children }) {
 
   useEffect(() => {
     socket?.on("preGameEvent", (data) => {
+      console.log("🚀 ~ file: MainContext.js:326 ~ socket?.on ~ data:", data)
       setMatchData(data.pregame);
       // console.log("preGameEvent", data.preGameId);
       if (searchingMatch) {
@@ -335,11 +364,18 @@ function MainProvider({ children }) {
         // navigation.navigate("InGame");
         setMatchId(data);
         // console.log("La partida ya ha comenzado");
-        navigation.navigate("Home");
+        navigation.navigate("InGame");
       } else {
         // console.log("La partida no ha comenzado");
         navigation.navigate("Home");
       }
+    });
+  }, [socket]);
+
+  useEffect(() => {
+    socket?.on("goHome", () => {
+      if (navigation.getCurrentRoute().name === "Home") return;
+      navigation.navigate("Home");
     });
   }, [socket]);
 
@@ -360,6 +396,24 @@ function MainProvider({ children }) {
       navigation.navigate("Setup");
 
       setSocketLoading(false);
+    });
+  }, [socket]);
+
+  useEffect(() => {
+    socket?.on("goInGame", () => {
+      if (navigation.getCurrentRoute().name === "InGame") return;
+      navigation.navigate("InGame");
+    });
+  }, [socket]);
+
+  useEffect(() => {
+    socket?.on("inGameData", (data) => {
+      const inGameMap = data && maps.find((map) => map.mapUrl === data.matchMap);
+      setScoreMatch({
+        allyTeam: data.partyOwnerMatchScoreAllyTeam,
+        enemyTeam: data.partyOwnerMatchScoreEnemyTeam,
+        map: inGameMap,
+      });
     });
   }, [socket]);
 
@@ -390,10 +444,13 @@ function MainProvider({ children }) {
         matchData,
         matchId,
         maps,
+        matchMap,
         agents,
         playerCards,
         contracts,
         playerContracts,
+        friends,
+        scoreMatch,
       }}
     >
       {children}
