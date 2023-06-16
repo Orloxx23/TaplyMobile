@@ -28,7 +28,7 @@ export default function HomePlayerCard({ member }) {
         console.log("🚀 ~ file: HomePlayerCard.jsx:20 ~ error:", error);
       }
     })();
-  }, [member]);
+  }, [member, party]);
 
   useEffect(() => {
     if (!member || member === "") return;
